@@ -95,41 +95,77 @@ def generate_unique_companies(count=160):
 
 records = generate_unique_companies(160)
 
+# 1. Guarantee Cohort 1: High Fit + High Confidence (PRIORITY TARGETS)
+# Indices 0 to 11: SaaS/FinTech/Healthcare, TX/CA/NY, Revenue $3M-$25M, 20-150 employees, all fields populated
+for i in range(12):
+    records[i]['industry'] = random.choice(['SaaS', 'FinTech', 'Healthcare'])
+    records[i]['state'] = random.choice(['TX', 'CA', 'NY'])
+    records[i]['city'] = get_city(records[i]['state'])
+    records[i]['revenue'] = random.randint(3000000, 25000000)
+    records[i]['employee_count'] = random.randint(20, 150)
+    records[i]['founded_year'] = random.randint(2005, 2018)
+    # Ensure full data completeness
+    if not records[i]['owner_name']:
+        records[i]['owner_name'] = f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
+    if not records[i]['owner_email']:
+        domain = records[i]['company_name'].lower().replace(' ', '-') + '.test'
+        records[i]['owner_email'] = f"contact@{domain}"
+
+# 2. Guarantee Cohort 2: High Fit + Low Confidence (VERIFY FIRST)
+# Indices 12 to 24: SaaS/FinTech/Healthcare, TX/CA/NY, Target Revenue/Headcount, but missing contact and age data
+for i in range(12, 25):
+    records[i]['industry'] = random.choice(['SaaS', 'FinTech', 'Healthcare'])
+    records[i]['state'] = random.choice(['TX', 'CA', 'NY'])
+    records[i]['city'] = get_city(records[i]['state'])
+    records[i]['revenue'] = random.randint(3000000, 25000000)
+    records[i]['employee_count'] = random.randint(20, 150)
+    # Strip contact information to drive data confidence down to ~55-65%
+    records[i]['owner_email'] = ""
+    records[i]['phone'] = ""
+    records[i]['linkedin_url'] = ""
+    records[i]['founded_year'] = ""
+
+# 3. Guarantee Cohort 3: Low Fit + High Confidence (KNOWN LOW FIT)
+# Indices 25 to 40: Non-target industries (Construction, Retail, Hospitality), other states, full data completeness
+for i in range(25, 40):
+    records[i]['industry'] = random.choice(['Construction', 'Real Estate', 'Logistics'])
+    records[i]['state'] = random.choice(['MO', 'WI', 'SC', 'IN'])
+    records[i]['city'] = get_city(records[i]['state'])
+    records[i]['revenue'] = random.randint(60000000, 95000000)  # Outside target rev
+    # Full data completeness
+    if not records[i]['owner_name']:
+        records[i]['owner_name'] = f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
+
+# 4. Guarantee Cohort 4: Low Fit + Low Confidence (DEPRIORITIZE)
+# Indices 40 to 55: Non-target industries, sparse fields
+for i in range(40, 55):
+    records[i]['industry'] = random.choice(['Construction', 'Real Estate'])
+    records[i]['state'] = random.choice(['MO', 'WI', 'SC'])
+    records[i]['revenue'] = ""
+    records[i]['employee_count'] = ""
+    records[i]['owner_email'] = ""
+    records[i]['phone'] = ""
+    records[i]['linkedin_url'] = ""
+
+# Additional missing fields spread across records 55-120 for realistic data quality variance
+for i in range(55, 70):
+    records[i]['website'] = ""
+for i in range(70, 85):
+    records[i]['owner_email'] = ""
+for i in range(85, 95):
+    records[i]['phone'] = ""
+for i in range(95, 105):
+    records[i]['revenue'] = ""
+for i in range(105, 115):
+    records[i]['employee_count'] = ""
+
 # Create 15 deliberate duplicates
 duplicates = []
 for i in range(15):
     dup = dict(records[i])
-    # Slight variation in duplicate source or case
     dup['source'] = 'Secondary Directory'
     dup['source_url'] = f"https://secondary.test/{dup['company_name'].lower().replace(' ', '-')}"
     duplicates.append(dup)
-
-# Intentionally introduce realistic missing data in the base records
-# Some missing websites
-for i in range(15, 30):
-    records[i]['website'] = ""
-# Some missing owner emails
-for i in range(30, 45):
-    records[i]['owner_email'] = ""
-# Some missing phone numbers
-for i in range(45, 60):
-    records[i]['phone'] = ""
-# Some missing LinkedIn
-for i in range(60, 75):
-    records[i]['linkedin_url'] = ""
-# Some missing revenue
-for i in range(75, 85):
-    records[i]['revenue'] = ""
-# Some missing employees
-for i in range(85, 95):
-    records[i]['employee_count'] = ""
-# Some missing founded year
-for i in range(95, 105):
-    records[i]['founded_year'] = ""
-# Some missing owner name (no decision maker)
-for i in range(105, 120):
-    records[i]['owner_name'] = ""
-    records[i]['owner_title'] = ""
 
 all_records = records + duplicates
 random.shuffle(all_records)

@@ -22,6 +22,8 @@ export interface Lead {
   priority: string | null;
   score_breakdown: Record<string, number> | null;
   score_reasons: { positive: string[]; negative: string[] } | null;
+  next_best_action: string | null;
+  is_shortlisted: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -53,10 +55,121 @@ export interface Stats {
   high_priority: number;
   medium_priority: number;
   low_priority: number;
+  unscored_leads: number;
+  scored_leads: number;
+  shortlisted_leads: number;
   avg_fit_score: number;
   avg_data_quality: number;
+}
+
+export interface VerificationGap {
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  field: string;
+  label: string;
+  description: string;
+}
+
+export interface ConfidenceBreakdown {
+  strong: string[];
+  needs_verification: string[];
+}
+
+export interface DecisionSummary {
+  lead_id: number;
+  company_name: string;
+  fit_score: number | null;
+  data_confidence: number;
+  priority: string;
+  quadrant: 'PRIORITY_TARGETS' | 'VERIFY_FIRST' | 'KNOWN_LOW_FIT' | 'DEPRIORITIZE';
+  quadrant_label: string;
+  why_this_target: string;
+  next_best_action: string;
+  verification_gaps: VerificationGap[];
+  confidence_breakdown: ConfidenceBreakdown;
+}
+
+export interface MatrixPoint {
+  id: number;
+  company_name: string;
+  fit_score: number;
+  data_confidence: number;
+  priority: string;
+  quadrant: 'PRIORITY_TARGETS' | 'VERIFY_FIRST' | 'KNOWN_LOW_FIT' | 'DEPRIORITIZE';
+  quadrant_label: string;
+  next_best_action: string;
+  industry: string | null;
+  revenue: number | null;
+  employee_count: number | null;
+  is_shortlisted: boolean;
+}
+
+export interface ResearchQueueItem {
+  id: number;
+  company_name: string;
+  fit_score: number;
+  data_confidence: number;
+  priority: string;
+  quadrant_label: string;
+  why_it_matters: string;
+  next_action: string;
+}
+
+export interface InsightsResponse {
+  total_leads: number;
   scored_leads: number;
   unscored_leads: number;
+  avg_fit_score: number;
+  avg_data_confidence: number;
+  priority_targets_count: number;
+  verify_first_count: number;
+  known_low_fit_count: number;
+  deprioritize_count: number;
+  high_priority_count: number;
+  medium_priority_count: number;
+  low_priority_count: number;
+  shortlisted_count: number;
+  pipeline_insights: string[];
+  research_queue: ResearchQueueItem[];
+  matrix_points: MatrixPoint[];
+}
+
+export interface TargetComparisonItem {
+  id: number;
+  company_name: string;
+  fit_score: number | null;
+  data_confidence: number;
+  priority: string;
+  quadrant_label: string;
+  industry: string | null;
+  location: string | null;
+  revenue: number | null;
+  employee_count: number | null;
+  founded_year: number | null;
+  business_age: number | null;
+  decision_maker: string | null;
+  decision_maker_title: string | null;
+  next_best_action: string;
+}
+
+export interface CompareResponse {
+  targets: TargetComparisonItem[];
+  strongest_fit: string | null;
+  best_confidence: string | null;
+  needs_most_verification: string | null;
+  comparison_notes: string[];
+}
+
+export interface AcquisitionBriefResponse {
+  lead_id: number;
+  company_name: string;
+  generated_at: string;
+  disclaimer: string;
+  target_snapshot: Record<string, any>;
+  acquisition_fit: Record<string, any>;
+  why_it_ranks: string[];
+  verify_before_proceeding: VerificationGap[];
+  next_best_action: string;
+  source_metadata: Record<string, any>;
 }
 
 export interface ImportResult {
@@ -82,6 +195,7 @@ export interface Filters {
   has_email?: boolean;
   has_website?: boolean;
   has_decision_maker?: boolean;
+  is_shortlisted?: boolean;
   search?: string;
 }
 

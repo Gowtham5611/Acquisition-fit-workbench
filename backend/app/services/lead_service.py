@@ -43,3 +43,11 @@ class LeadService:
     @staticmethod
     def get_stats(db: Session):
         return repo.get_stats(db)
+
+    @staticmethod
+    def get_shortlisted(db: Session):
+        return repo.get_shortlisted(db)
+
+    @staticmethod
+    def set_shortlist(db: Session, lead_id: int, shortlisted: bool):
+        return repo.set_shortlist(db, lead_id, shortlisted)

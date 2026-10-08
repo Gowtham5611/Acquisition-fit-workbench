@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UploadCloud, Database } from 'lucide-react';
+import { UploadCloud, Database, ArrowRight, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api';
 import { ImportResult } from '../types';
 import toast from 'react-hot-toast';
@@ -37,7 +37,7 @@ export default function ImportPage() {
     try {
       const res = await api.importCSV(file);
       setResult(res);
-      toast.success('Import completed');
+      toast.success('Import and deduplication completed');
     } catch (e: any) {
       toast.error(e.message || 'Import failed');
     } finally {
@@ -51,7 +51,7 @@ export default function ImportPage() {
     try {
       const res = await api.loadDemo();
       setResult(res);
-      toast.success(`Successfully loaded ${res.rows_imported} demo leads (${res.duplicates_found} duplicates merged)`);
+      toast.success(`Loaded ${res.rows_imported} targets (${res.duplicates_found} duplicates merged)`);
     } catch (e: any) {
       toast.error(e.message || 'Demo load failed');
     } finally {
@@ -60,22 +60,37 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold text-slate-900 mb-6">Import Leads</h2>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight text-white">
+          Lead Intake & Deduplication Engine
+        </h2>
+        <p className="text-xs text-slate-400 mt-1">
+          Normalize domains, validate firmographic criteria, and merge duplicates into unified company records.
+        </p>
+      </div>
 
       {!result ? (
         <div className="space-y-6">
+          {/* Drag & Drop Zone */}
           <div
-            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-              isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:border-slate-400 bg-white'
+            className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer ${
+              isDragging
+                ? 'border-indigo-500 bg-indigo-950/30'
+                : 'border-slate-800 hover:border-slate-700 bg-slate-900/60'
             }`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
           >
-            <UploadCloud className="mx-auto h-12 w-12 text-slate-400 mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">Drag and drop your CSV file here</h3>
-            <p className="text-sm text-slate-500 mb-6">or click to browse from your computer</p>
+            <UploadCloud className="mx-auto h-12 w-12 text-indigo-400 mb-3" />
+            <h3 className="text-base font-semibold text-slate-100 mb-1">
+              Upload Acquisition Target CSV
+            </h3>
+            <p className="text-xs text-slate-400 mb-5">
+              Drag and drop your spreadsheet here or click to browse
+            </p>
             
             <input
               type="file"
@@ -86,86 +101,119 @@ export default function ImportPage() {
             />
             
             <button
-              onClick={() => fileInputRef.current?.click()}
+              type="button"
               disabled={isUploading}
-              className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center px-4 py-2 text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors shadow-sm disabled:opacity-50"
             >
               Browse Files
             </button>
           </div>
 
+          {/* Divider */}
           <div className="relative">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-slate-200" />
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-800" />
             </div>
-            <div className="relative flex justify-center">
-              <span className="px-2 bg-slate-50 text-sm text-slate-500">OR</span>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-3 bg-slate-950 text-slate-500 font-mono">OR</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-slate-200 p-6 flex items-center justify-between">
-            <div className="flex items-center">
-              <Database className="h-8 w-8 text-blue-600 mr-4" />
+          {/* One-Click Demo Dataset Card */}
+          <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-lg bg-indigo-950/60 border border-indigo-800/60 flex items-center justify-center shrink-0">
+                <Database className="h-5 w-5 text-indigo-400" />
+              </div>
               <div>
-                <h4 className="text-base font-medium text-slate-900">Load Demo Dataset</h4>
-                <p className="text-sm text-slate-500">Populate the workbench with synthetic B2B leads for testing.</p>
+                <h4 className="text-sm font-bold text-slate-100">
+                  Load Curated Sourcing Dataset (175 Records)
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Pre-populated with 160 companies across 14 industries + 15 deliberate duplicates to test all 4 matrix quadrants.
+                </p>
               </div>
             </div>
+
             <button
+              type="button"
               onClick={loadDemo}
               disabled={isUploading}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-500 shadow-sm transition-colors shrink-0 disabled:opacity-50"
             >
-              Load Demo Data
+              {isUploading ? 'Loading Dataset...' : 'Seed Prototype Dataset'}
             </button>
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-4 py-5 sm:px-6 bg-slate-50 border-b border-slate-200">
-            <h3 className="text-lg leading-6 font-medium text-slate-900">Import Results</h3>
+        /* Import Audit Results Card */
+        <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-lg space-y-6 p-6">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-100">Intake Audit Report</h3>
+              <p className="text-xs text-slate-400">Normalization and deduplication results summary</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setResult(null)}
+              className="text-xs font-semibold text-slate-400 hover:text-slate-200"
+            >
+              Import Another File
+            </button>
           </div>
-          <div className="px-4 py-5 sm:p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="bg-slate-50 p-4 rounded-md text-center">
-                <span className="block text-sm font-medium text-slate-500">Received</span>
-                <span className="block text-2xl font-semibold text-slate-900">{result.rows_received}</span>
-              </div>
-              <div className="bg-emerald-50 p-4 rounded-md text-center">
-                <span className="block text-sm font-medium text-emerald-600">Imported</span>
-                <span className="block text-2xl font-semibold text-emerald-700">{result.rows_imported}</span>
-              </div>
-              <div className="bg-amber-50 p-4 rounded-md text-center">
-                <span className="block text-sm font-medium text-amber-600">Duplicates</span>
-                <span className="block text-2xl font-semibold text-amber-700">{result.duplicates_found}</span>
-              </div>
-              <div className="bg-red-50 p-4 rounded-md text-center">
-                <span className="block text-sm font-medium text-red-600">Invalid</span>
-                <span className="block text-2xl font-semibold text-red-700">{result.invalid_rows}</span>
-              </div>
+
+          {/* 4 Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="bg-slate-950 p-4 rounded-lg border border-slate-800">
+              <span className="block text-[11px] font-semibold uppercase text-slate-400">Received</span>
+              <span className="block text-2xl font-bold font-mono text-slate-100 mt-1">{result.rows_received}</span>
             </div>
-            
-            {result.errors.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-red-800 mb-2">Errors & Warnings</h4>
-                <div className="bg-red-50 rounded-md p-4 text-sm text-red-700 max-h-40 overflow-y-auto">
-                  <ul className="list-disc pl-5 space-y-1">
-                    {result.errors.map((err, i) => (
-                      <li key={i}>{err}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-            
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Go to Dashboard
-              </button>
+
+            <div className="bg-slate-950 p-4 rounded-lg border border-emerald-950">
+              <span className="block text-[11px] font-semibold uppercase text-emerald-400">Imported</span>
+              <span className="block text-2xl font-bold font-mono text-emerald-300 mt-1">{result.rows_imported}</span>
             </div>
+
+            <div className="bg-slate-950 p-4 rounded-lg border border-amber-950">
+              <span className="block text-[11px] font-semibold uppercase text-amber-400">Duplicates Merged</span>
+              <span className="block text-2xl font-bold font-mono text-amber-300 mt-1">{result.duplicates_found}</span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-lg border border-rose-950">
+              <span className="block text-[11px] font-semibold uppercase text-rose-400">Validation Errors</span>
+              <span className="block text-2xl font-bold font-mono text-rose-300 mt-1">{result.invalid_rows}</span>
+            </div>
+          </div>
+
+          {/* Validation Errors / Warnings */}
+          {result.errors.length > 0 && (
+            <div className="border border-rose-900/40 bg-rose-950/20 rounded-lg p-4 space-y-2">
+              <div className="flex items-center gap-2 text-rose-300 text-xs font-bold">
+                <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <span>Validation Log ({result.errors.length} items flagged)</span>
+              </div>
+              <ul className="text-xs text-rose-300/90 list-disc pl-5 space-y-1 max-h-36 overflow-y-auto">
+                {result.errors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Records successfully committed to local SQLite database.</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors"
+            >
+              <span>Proceed to Command Center</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}

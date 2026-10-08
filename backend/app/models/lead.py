@@ -25,10 +25,12 @@ class Lead(Base):
     source = Column(String, nullable=True)
     source_url = Column(String, nullable=True)
     data_quality_score = Column(Float, nullable=True, default=0)
-    fit_score = Column(Float, nullable=True, default=0)
-    priority = Column(String, nullable=True, default='LOW')
+    fit_score = Column(Float, nullable=True, default=None)
+    priority = Column(String, nullable=True, default='UNSCORED')
     score_breakdown = Column(String, nullable=True)  # JSON string
     score_reasons = Column(String, nullable=True)  # JSON string
+    next_best_action = Column(String, nullable=True)
+    is_shortlisted = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -38,4 +40,5 @@ class Lead(Base):
         Index('ix_leads_revenue', 'revenue'),
         Index('ix_leads_employee_count', 'employee_count'),
         Index('ix_leads_data_quality_score', 'data_quality_score'),
+        Index('ix_leads_is_shortlisted', 'is_shortlisted'),
     )

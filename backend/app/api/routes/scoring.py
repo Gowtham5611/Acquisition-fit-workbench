@@ -6,6 +6,8 @@ from app.schemas.scoring import ScoreRequest, ScorePreviewRequest, ScoreResult
 from app.services.scoring_service import score_all_leads, calculate_fit_score
 from app.repositories.lead_repository import LeadRepository
 
+from app.services.decision_service import DecisionService
+
 router = APIRouter()
 repo = LeadRepository()
 
@@ -20,6 +22,14 @@ def score_leads(request: ScoreRequest, db: Session = Depends(get_db)):
         score_res = res['score_result']
         dq = res['data_quality']
         
+        lead_dict = {c.name: getattr(lead, c.name) for c in lead.__table__.columns}
+        next_action = DecisionService.determine_next_best_action(
+            lead_dict,
+            score_res.score,
+            dq,
+            score_res.negative_signals
+        )
+        
         repo.update(db, lead.id, {
             'fit_score': score_res.score,
             'priority': score_res.priority,
@@ -28,7 +38,8 @@ def score_leads(request: ScoreRequest, db: Session = Depends(get_db)):
                 'positive': score_res.positive_signals,
                 'negative': score_res.negative_signals
             }),
-            'data_quality_score': dq
+            'data_quality_score': dq,
+            'next_best_action': next_action
         })
         scored_count += 1
         

@@ -32,14 +32,23 @@ class ScoreReasons(BaseModel):
 class LeadResponse(LeadBase):
     id: int
     data_quality_score: Optional[float] = 0.0
-    fit_score: Optional[float] = 0.0
-    priority: Optional[str] = 'LOW'
+    fit_score: Optional[float] = None
+    priority: Optional[str] = 'UNSCORED'
     score_breakdown: Optional[Dict[str, float]] = None
     score_reasons: Optional[ScoreReasons] = None
+    next_best_action: Optional[str] = None
+    is_shortlisted: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator('is_shortlisted', mode='before')
+    @classmethod
+    def parse_shortlisted(cls, v: Any):
+        if isinstance(v, int):
+            return bool(v)
+        return bool(v) if v is not None else False
 
     @field_validator('score_breakdown', mode='before')
     @classmethod

@@ -4,17 +4,17 @@ import { ICPConfig } from '../types';
 const STORAGE_KEY = 'acq_fit_icp_config';
 
 const DEFAULT_CONFIG: ICPConfig = {
-  target_industries: [],
-  target_locations: [],
-  min_employees: null,
-  max_employees: null,
-  min_revenue: null,
-  max_revenue: null,
-  min_years: null,
-  max_years: null,
+  target_industries: ['SaaS', 'Healthcare', 'FinTech'],
+  target_locations: ['TX', 'CA', 'NY', 'FL'],
+  min_employees: 15,
+  max_employees: 200,
+  min_revenue: 2000000,
+  max_revenue: 35000000,
+  min_years: 3,
+  max_years: 25,
   decision_maker_preferred: true,
   website_preferred: true,
-  exclusion_keywords: []
+  exclusion_keywords: ['franchise', 'nonprofit', 'consulting']
 };
 
 export function useICP() {

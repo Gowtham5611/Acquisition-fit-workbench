@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.models.lead import Base
 from app.models.database import engine
-from app.api.routes import health, leads, import_export, stats, scoring
+from app.api.routes import health, leads, import_export, stats, scoring, decision
 
 settings = get_settings()
 
@@ -29,10 +29,11 @@ Base.metadata.create_all(bind=engine)
 os.makedirs('data/demo', exist_ok=True)
 os.makedirs('data/imports', exist_ok=True)
 
-# Include routers - import_export and scoring MUST precede leads so /api/leads/export and /api/leads/score
-# are evaluated before the parameterized route /api/leads/{lead_id}
+# Include routers - import_export, scoring, and decision MUST precede leads so /api/leads/export, /api/leads/score,
+# and /api/leads/compare are evaluated before the parameterized route /api/leads/{lead_id}
 app.include_router(health.router)
 app.include_router(import_export.router)
 app.include_router(scoring.router)
+app.include_router(decision.router)
 app.include_router(stats.router)
 app.include_router(leads.router)

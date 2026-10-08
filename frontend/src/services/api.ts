@@ -1,4 +1,7 @@
-import { LeadListResponse, Lead, Stats, ImportResult, Filters, SortField, SortOrder, ICPConfig } from '../types';
+import { 
+  LeadListResponse, Lead, Stats, ImportResult, Filters, SortField, SortOrder, ICPConfig,
+  InsightsResponse, DecisionSummary, CompareResponse, AcquisitionBriefResponse
+} from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -62,6 +65,37 @@ export const api = {
 
   getStats: async (): Promise<Stats> => {
     return fetchWithHandle('/stats');
+  },
+
+  getInsights: async (): Promise<InsightsResponse> => {
+    return fetchWithHandle('/insights');
+  },
+
+  getDecisionSummary: async (leadId: number): Promise<DecisionSummary> => {
+    return fetchWithHandle(`/leads/${leadId}/decision-summary`);
+  },
+
+  compareTargets: async (leadIds: number[]): Promise<CompareResponse> => {
+    return fetchWithHandle('/leads/compare', {
+      method: 'POST',
+      body: JSON.stringify({ lead_ids: leadIds }),
+    });
+  },
+
+  getShortlist: async (): Promise<Lead[]> => {
+    return fetchWithHandle('/shortlist');
+  },
+
+  addToShortlist: async (leadId: number): Promise<Lead> => {
+    return fetchWithHandle(`/shortlist/${leadId}`, { method: 'POST' });
+  },
+
+  removeFromShortlist: async (leadId: number): Promise<Lead> => {
+    return fetchWithHandle(`/shortlist/${leadId}`, { method: 'DELETE' });
+  },
+
+  getAcquisitionBrief: async (leadId: number): Promise<AcquisitionBriefResponse> => {
+    return fetchWithHandle(`/brief/${leadId}`);
   },
 
   scoreLeads: async (config: ICPConfig): Promise<{ message: string; scored_count: number }> => {

@@ -1,100 +1,83 @@
 # Architecture Overview
 
-## System Overview
-The system follows a modern 3-tier architecture:
-- **Frontend:** React Single Page Application (SPA)
-- **Backend:** FastAPI REST API
-- **Database:** SQLite (via SQLAlchemy ORM)
+## System Architecture
 
-## Frontend Architecture
-- **Framework:** Vite + React + TypeScript
-- **Routing:** React Router for navigation
-- **Styling:** Tailwind CSS (utility-first)
-- **Structure:**
-  - Page components (Dashboard, Import)
-  - Shared components (Table, Badges, Forms)
-  - Custom hooks for state management
-  - API service layer for backend communication
+The Acquisition Fit Workbench follows a decoupled 3-tier layered architecture:
+- **Presentation Layer:** React 19 Single Page Application (TypeScript, Tailwind CSS, Vite)
+- **Application & API Layer:** FastAPI (Python 3.13) with strict Pydantic v2 data contracts
+- **Data & Storage Layer:** SQLite with composite B-tree indices (managed via SQLAlchemy 2.0 ORM)
 
-## Backend Architecture
-- **Framework:** FastAPI with CORS middleware
-- **Design Pattern:** Layered architecture
-  - **Route Handlers:** Thin controllers that receive requests and return responses
-  - **Service Layer:** Contains business logic (scoring, validation, deduplication)
-  - **Repository Layer:** Data access layer interacting with the database
-- **Validation:** Pydantic schemas enforce type safety and data boundaries
-- **ORM:** SQLAlchemy manages database models and migrations
+---
 
-## Data Flow
+## 1. Frontend Architecture
+- **Framework:** React 19 + TypeScript + Vite
+- **Styling:** Tailwind CSS (custom slate/indigo investment terminal design system)
+- **Routing:** React Router v6
+- **Component Breakdown:**
+  - `ExecutiveView.tsx`: High-level command center with KPI strip, Opportunity Matrix, Today's Research Queue, and Pipeline Insights.
+  - `OpportunityMatrix.tsx`: Interactive SVG scatter plot mapping Fit Score (Y) against Data Confidence (X) across 4 quadrants.
+  - `ResearchQueue.tsx`: Ranked priority list displaying Why It Matters and Next Best Action.
+  - `ResearchView.tsx` / `LeadTable.tsx`: Granular 11-column data grid with server-side pagination, sorting, shortlist stars, and compare selection.
+  - `CompareModal.tsx`: Side-by-side evaluation matrix for 2 or 3 targets with objective criteria highlights.
+  - `AcquisitionBriefModal.tsx`: Printable Preliminary Acquisition Research Brief with instant PDF styling.
+  - `LeadDetailDrawer.tsx`: Executive target profile with 5-second summary, next action, and verification gaps checklist.
+  - `ICPForm.tsx`: Ideal Company Profile criteria configuration panel.
+
+---
+
+## 2. Backend Architecture
+The backend is structured into distinct layers following Clean Architecture principles:
+
+- **Route Controllers (`app/api/routes/`):**
+  - `health.py`: Liveness and readiness probes.
+  - `scoring.py`: ICP evaluation and batch pipeline scoring.
+  - `decision.py`: `/api/insights`, `/api/leads/{id}/decision-summary`, `/api/leads/compare`, `/api/shortlist`, `/api/brief/{id}`.
+  - `leads.py`: Lead querying, full-text search, multi-criteria filtering, and pagination.
+  - `import_export.py`: Multipart CSV ingestion, audit reporting, and filtered CSV export.
+  - `stats.py`: High-level pipeline metrics.
+
+- **Service Layer (`app/services/`):**
+  - `scoring_service.py`: 8-factor deterministic scoring engine (clamped 0–100, exclusion keywords, positive/negative signals).
+  - `decision_service.py`: Quadrant calculation, deterministic Next Best Action logic, verification gaps auditing, target comparison highlights, and brief generation.
+  - `normalization_service.py`: Canonical domain extraction, company legal suffix cleaning, phone and LinkedIn formatting.
+  - `validation_service.py`: Field presence, format validity, non-negative numbers, and calendar boundaries.
+  - `deduplication_service.py`: Primary domain matching with fallback to normalized company name + state.
+  - `import_service.py` & `export_service.py`: Ingestion parsing and targeted CSV generation.
+
+- **Repository Layer (`app/repositories/lead_repository.py`):**
+  - Decoupled database access layer handling SQL filtering, sorting, pagination, shortlist persistence, and exact count statistics.
+
+- **Data Model (`app/models/lead.py`):**
+  - Indexed fields: `fit_score`, `priority`, `revenue`, `employee_count`, `data_quality_score`, `is_shortlisted`.
+
+---
+
+## 3. Decision Intelligence Data Flow
+
 ```mermaid
 flowchart TD
-    A[CSV Upload] --> B[Normalization]
-    B --> C[Validation]
-    C --> D[Deduplication]
-    D --> E[Storage (SQLite)]
+    A[Raw Lead Data] --> B[Data Normalization & Validation]
+    B --> C[Domain & Name Deduplication]
+    C --> D[(SQLite Database)]
+    D --> E[Scoring Engine: ICP Comparison]
+    E --> F[Fit Score 0-100 & Explainable Signals]
+    D --> G[Data Quality Engine]
+    G --> H[Data Confidence % & Verification Gaps]
+    F --> I[Decision Service]
+    H --> I
+    I --> J[Opportunity Matrix: Fit × Confidence]
+    I --> K[Next Best Action Recommendation]
+    I --> L[Side-by-Side Target Comparison]
+    I --> M[Preliminary Acquisition Research Brief]
 ```
 
-## Scoring Flow
-```mermaid
-flowchart TD
-    A[ICP Config] --> B{Calculate Score}
-    C[Lead Data] --> B
-    B --> D[Generate Breakdown & Signals]
-    D --> E[Update Database]
-```
+---
 
-## Import Flow
-1. CSV upload via frontend
-2. Header mapping and row parsing
-3. Normalization (domains, names)
-4. Validation (email formats, URLs)
-5. Deduplication (check existing records)
-6. Bulk insert to database
-7. Return result summary
+## 4. Invariant Protection: Exact Lead Accounting
+The database maintains an invariant partition:
+$$\text{Total Leads} = \text{High Priority} + \text{Medium Priority} + \text{Low Priority} + \text{Unscored Leads}$$
 
-## Deduplication Flow
-1. Normalize domain
-2. Check existing records by domain
-3. If match found, merge fields (preferring more complete data)
-4. If no domain exists, try fallback matching by normalized company name + state
-5. Report detected duplicates in import summary
-
-## Database Model
-**Table: Leads**
-- `id` (PK, UUID)
-- `company_name` (String, Indexed)
-- `domain` (String, Indexed)
-- `industry` (String, Indexed)
-- `state` (String, Indexed)
-- `revenue` (Float)
-- `employee_count` (Integer)
-- `fit_score` (Integer, Indexed)
-- `priority` (String, Indexed)
-- Additional contact and metadata fields
-
-## API Design
-- **RESTful Conventions:** Standard HTTP methods (GET, POST)
-- **Pagination:** Uses `skip` and `limit` parameters
-- **Error Responses:** Standardized JSON error format
-- **Filtering:** Query parameters for searching and filtering leads
-
-## Caching
-- **Prototype:** In-process caching for repeated stat/filter queries during a session
-- **Production (Future):** Redis for shared caching across instances and rate limiting
-
-## Performance
-- Indexes on frequently queried columns
-- Pagination (default 20 rows, up to 100)
-- Backend-side filtering and sorting to minimize data transfer
-
-## Deployment Architecture
-- **Frontend:** CDN or static hosting (e.g., Vercel, Netlify)
-- **Backend:** API server (e.g., Render, Railway)
-- **Database:** PostgreSQL (managed instance)
-
-## Production Scaling Path
-1. Migrate from SQLite to PostgreSQL
-2. Add Redis for caching and session management
-3. Introduce a background job queue (e.g., Celery) for async scoring of large datasets
-4. Deploy API behind a load balancer with multiple instances
-5. Implement authentication and rate limiting
+This is guaranteed at the repository and schema level:
+- Unscored leads default to `priority = 'UNSCORED'` and `fit_score = None`.
+- Scoring assigns leads strictly to `HIGH` ($\ge 80$), `MEDIUM` ($60\text{--}79$), or `LOW` ($< 60$).
+- `total == high + medium + low + unscored` holds unconditionally across all API responses.

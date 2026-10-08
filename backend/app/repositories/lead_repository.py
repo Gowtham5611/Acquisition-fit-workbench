@@ -54,6 +54,9 @@ class LeadRepository:
                 q = q.filter(and_(Lead.website != None, Lead.website != ''))
             if filters.get('has_decision_maker'):
                 q = q.filter(and_(Lead.owner_name != None, Lead.owner_name != ''))
+            if filters.get('is_shortlisted') is not None:
+                shortlist_val = 1 if filters['is_shortlisted'] else 0
+                q = q.filter(Lead.is_shortlisted == shortlist_val)
             
         total = q.count()
         
@@ -99,6 +102,17 @@ class LeadRepository:
             db.refresh(lead)
         return lead
 
+    def get_shortlisted(self, db: Session) -> List[Lead]:
+        return db.query(Lead).filter(Lead.is_shortlisted == 1).order_by(desc(Lead.fit_score), desc(Lead.id)).all()
+
+    def set_shortlist(self, db: Session, lead_id: int, shortlisted: bool) -> Optional[Lead]:
+        lead = self.get_by_id(db, lead_id)
+        if lead:
+            lead.is_shortlisted = 1 if shortlisted else 0
+            db.commit()
+            db.refresh(lead)
+        return lead
+
     def bulk_create(self, db: Session, leads_data: List[dict]) -> List[Lead]:
         leads = [Lead(**data) for data in leads_data]
         db.add_all(leads)
@@ -118,17 +132,27 @@ class LeadRepository:
         high = db.query(Lead).filter(Lead.priority == 'HIGH').count()
         medium = db.query(Lead).filter(Lead.priority == 'MEDIUM').count()
         low = db.query(Lead).filter(Lead.priority == 'LOW').count()
-        avg_score = db.query(func.avg(Lead.fit_score)).scalar() or 0.0
-        avg_dq = db.query(func.avg(Lead.data_quality_score)).scalar() or 0.0
-        scored = db.query(Lead).filter(Lead.fit_score > 0).count()
+        unscored = db.query(Lead).filter(or_(Lead.priority == 'UNSCORED', Lead.priority == None, Lead.fit_score == None)).count()
+        
+        # Ensure exact count partition invariant: total == high + medium + low + unscored
+        scored = high + medium + low
+
+        avg_score_query = db.query(func.avg(Lead.fit_score)).filter(Lead.fit_score != None).scalar()
+        avg_score = float(avg_score_query) if avg_score_query is not None else 0.0
+
+        avg_dq_query = db.query(func.avg(Lead.data_quality_score)).scalar()
+        avg_dq = float(avg_dq_query) if avg_dq_query is not None else 0.0
+
+        shortlisted = db.query(Lead).filter(Lead.is_shortlisted == 1).count()
         
         return {
             "total_leads": total,
             "high_priority": high,
             "medium_priority": medium,
             "low_priority": low,
-            "avg_fit_score": round(float(avg_score), 1),
-            "avg_data_quality": round(float(avg_dq), 1),
+            "unscored_leads": unscored,
             "scored_leads": scored,
-            "unscored_leads": total - scored
+            "shortlisted_leads": shortlisted,
+            "avg_fit_score": round(avg_score, 1),
+            "avg_data_quality": round(avg_dq, 1),
         }
