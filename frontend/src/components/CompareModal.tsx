@@ -245,3 +245,4 @@ export default function CompareModal({ isOpen, onClose, data, isLoading }: Compa
     </div>
   );
 }
+

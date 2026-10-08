@@ -35,3 +35,4 @@ export default function PipelineInsights({ insights }: PipelineInsightsProps) {
     </div>
   );
 }
+

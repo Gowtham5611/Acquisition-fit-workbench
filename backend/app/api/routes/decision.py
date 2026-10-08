@@ -178,3 +178,4 @@ def get_acquisition_brief(lead_id: int, db: Session = Depends(get_db)):
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     return DecisionService.generate_acquisition_brief(lead)
+

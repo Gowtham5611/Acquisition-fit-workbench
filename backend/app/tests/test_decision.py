@@ -224,3 +224,89 @@ def test_insights_and_total_count_invariant(client):
     assert len(insights["pipeline_insights"]) > 0
     assert insights["priority_targets_count"] >= 0
     assert insights["verify_first_count"] >= 0
+
+def test_strict_count_invariant_across_all_states(client):
+    """
+    Validates that total_leads == high_priority + medium_priority + low_priority + unscored_leads
+    under every possible state: initial, added unscored lead, and after scoring.
+    """
+    s0 = client.get("/api/stats").json()
+    assert s0["total_leads"] == s0["high_priority"] + s0["medium_priority"] + s0["low_priority"] + s0["unscored_leads"]
+
+    # Add an unscored lead
+    new_lead = {"company_name": "Invariant Test Co", "state": "TX", "industry": "SaaS"}
+    client.post("/api/leads", json=new_lead)
+    s1 = client.get("/api/stats").json()
+    assert s1["total_leads"] == s1["high_priority"] + s1["medium_priority"] + s1["low_priority"] + s1["unscored_leads"]
+
+    # Score all leads
+    icp = {
+        "icp": {
+            "target_industries": ["SaaS"],
+            "target_locations": ["TX"],
+            "min_revenue": 1000000,
+            "max_revenue": 50000000
+        }
+    }
+    client.post("/api/leads/score", json=icp)
+    s2 = client.get("/api/stats").json()
+    assert s2["total_leads"] == s2["high_priority"] + s2["medium_priority"] + s2["low_priority"] + s2["unscored_leads"]
+
+def test_calibrated_demo_data_distribution(client):
+    """
+    Validates that the demo dataset produces an acquisition-realistic distribution:
+    - High: 8-15%
+    - Medium: 20-30%
+    - Low: 50-65%
+    - All 4 Opportunity Matrix quadrants populated with visible examples.
+    """
+    # Load demo dataset
+    load_res = client.post("/api/leads/load-demo")
+    assert load_res.status_code == 200
+
+    # Score using default thesis ICP
+    icp = {
+        "icp": {
+            "target_industries": ["SaaS", "Healthcare", "FinTech"],
+            "target_locations": ["TX", "CA", "NY", "FL"],
+            "min_employees": 15,
+            "max_employees": 200,
+            "min_revenue": 2000000,
+            "max_revenue": 35000000,
+            "min_years": 3,
+            "max_years": 25,
+            "decision_maker_preferred": True,
+            "website_preferred": True,
+            "exclusion_keywords": ["franchise", "nonprofit", "consulting"]
+        }
+    }
+    score_res = client.post("/api/leads/score", json=icp)
+    assert score_res.status_code == 200
+
+    stats = client.get("/api/stats").json()
+    total = stats["total_leads"]
+    high = stats["high_priority"]
+    med = stats["medium_priority"]
+    low = stats["low_priority"]
+    unscored = stats["unscored_leads"]
+
+    # Invariant strictly preserved
+    assert total == high + med + low + unscored
+
+    # Distribution percentages
+    high_pct = (high / total) * 100
+    med_pct = (med / total) * 100
+    low_pct = (low / total) * 100
+
+    assert 8.0 <= high_pct <= 15.0, f"High priority percentage {high_pct:.1f}% not in 8-15%"
+    assert 20.0 <= med_pct <= 30.0, f"Medium priority percentage {med_pct:.1f}% not in 20-30%"
+    assert 50.0 <= low_pct <= 65.0, f"Low priority percentage {low_pct:.1f}% not in 50-65%"
+
+    # Opportunity Matrix quadrants all meaningfully populated
+    insights = client.get("/api/insights").json()
+    assert insights["priority_targets_count"] >= 10, "Priority targets quadrant insufficient"
+    assert insights["verify_first_count"] >= 8, "Verify first quadrant insufficient"
+    assert insights["known_low_fit_count"] >= 40, "Known low fit quadrant insufficient"
+    assert insights["deprioritize_count"] >= 15, "Deprioritize quadrant insufficient"
+
+

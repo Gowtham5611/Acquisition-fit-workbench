@@ -36,3 +36,4 @@ export default function ViewToggle({ currentView, onViewChange }: ViewToggleProp
     </div>
   );
 }
+

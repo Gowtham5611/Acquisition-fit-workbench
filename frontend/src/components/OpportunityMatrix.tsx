@@ -383,6 +383,15 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
           <span>Shortlisted Target</span>
         </div>
       </div>
+
+      {/* Methodology Footnote */}
+      <div className="mt-2.5 pt-2 border-t border-slate-800/40 flex items-center gap-2 text-[11px] text-slate-400">
+        <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        <span>
+          <strong className="text-slate-300">Data Confidence:</strong> Reflects completeness and validation of 11 core firmographic & contact fields; it is an objective measure of record fullness, not a guarantee of underlying factual accuracy or deal probability.
+        </span>
+      </div>
     </div>
   );
 }
+

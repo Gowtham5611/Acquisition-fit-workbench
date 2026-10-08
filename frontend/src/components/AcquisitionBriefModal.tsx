@@ -257,3 +257,4 @@ export default function AcquisitionBriefModal({ isOpen, onClose, brief, isLoadin
     </div>
   );
 }
+

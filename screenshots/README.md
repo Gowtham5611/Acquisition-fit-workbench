@@ -10,3 +10,4 @@ Recommended capture sequence:
 5. `05-target-comparison.png` - Side-by-side comparison modal comparing 2 or 3 targets.
 6. `06-acquisition-brief.png` - Printable Preliminary Acquisition Research Brief view.
 7. `07-intake-and-deduplication.png` - Intake audit report showing duplicate detection and validation metrics.
+

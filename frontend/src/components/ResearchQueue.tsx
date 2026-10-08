@@ -91,3 +91,4 @@ export default function ResearchQueue({ items, onSelectLead, isLoading }: Resear
     </div>
   );
 }
+

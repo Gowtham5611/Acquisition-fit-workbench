@@ -66,7 +66,10 @@ export default function ExecutiveView({ insights, onSelectLead, isLoading }: Exe
         </div>
 
         {/* Avg Data Confidence */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden group">
+        <div 
+          className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden group cursor-help"
+          title="Data confidence reflects completeness and validation of 11 core firmographic & contact fields; not a guarantee of factual accuracy or deal probability."
+        >
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider">
               Avg Confidence
@@ -77,7 +80,7 @@ export default function ExecutiveView({ insights, onSelectLead, isLoading }: Exe
             {isLoading ? '...' : `${insights?.avg_data_confidence.toFixed(1) ?? '0.0'}%`}
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
-            Information completeness
+            Profile field completeness
           </p>
         </div>
 
@@ -121,3 +124,4 @@ export default function ExecutiveView({ insights, onSelectLead, isLoading }: Exe
     </div>
   );
 }
+
