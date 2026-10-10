@@ -23,9 +23,9 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
   const getX = (conf: number) => margin.left + (conf / 100) * plotWidth;
   const getY = (fit: number) => margin.top + plotHeight - (fit / 100) * plotHeight;
 
-  // Midpoint threshold dividers: Fit = 70, Confidence = 75
+  // Midpoint threshold dividers: Fit = 80 (High Fit threshold), Confidence = 75%
   const splitX = getX(75);
-  const splitY = getY(70);
+  const splitY = getY(80);
 
   const getPointColor = (quadrant: string, isHovered: boolean) => {
     if (isHovered) return '#f59e0b'; // Amber-gold focus
@@ -367,11 +367,11 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-            <span className="text-slate-300 font-medium">Priority Targets (Fit ≥70, Conf ≥75%)</span>
+            <span className="text-slate-300 font-medium">Priority Targets (Fit ≥80, Conf ≥75%)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
-            <span className="text-slate-300 font-medium">Verify First (Fit ≥70, Conf &lt;75%)</span>
+            <span className="text-slate-300 font-medium">Verify First (Fit ≥80, Conf &lt;75%)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block"></span>

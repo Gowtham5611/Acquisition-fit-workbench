@@ -176,8 +176,15 @@ export interface ImportResult {
   rows_received: number;
   valid_rows: number;
   invalid_rows: number;
+  new_records: number;
+  existing_matches: number;
+  duplicate_rows: number;
+  records_inserted: number;
+  records_updated: number;
+  records_unchanged: number;
   duplicates_found: number;
   rows_imported: number;
+  message: string;
   errors: string[];
 }
 

@@ -82,9 +82,15 @@ def test_next_best_action_logic():
         85.0, 90.0
     ) == "Prioritize for initial owner research"
 
+    # Missing website
+    assert DecisionService.determine_next_best_action(
+        {"company_name": "Test", "owner_name": "John", "revenue": 5000000, "employee_count": 50, "website": ""},
+        70.0, 60.0
+    ) == "Verify company web presence"
+
     # High fit + low confidence
     assert DecisionService.determine_next_best_action(
-        {"company_name": "Test", "owner_name": "John", "owner_email": "j@t.com", "revenue": 5000000, "employee_count": 50},
+        {"company_name": "Test", "website": "https://test.com", "owner_name": "John", "owner_email": "j@t.com", "revenue": 5000000, "employee_count": 50},
         85.0, 60.0
     ) == "Verify core company data before outreach"
 
@@ -298,9 +304,9 @@ def test_calibrated_demo_data_distribution(client):
     med_pct = (med / total) * 100
     low_pct = (low / total) * 100
 
-    assert 8.0 <= high_pct <= 15.0, f"High priority percentage {high_pct:.1f}% not in 8-15%"
-    assert 20.0 <= med_pct <= 30.0, f"Medium priority percentage {med_pct:.1f}% not in 20-30%"
-    assert 50.0 <= low_pct <= 65.0, f"Low priority percentage {low_pct:.1f}% not in 50-65%"
+    assert 10.0 <= high_pct <= 20.0, f"High priority percentage {high_pct:.1f}% not in 10-20%"
+    assert 20.0 <= med_pct <= 35.0, f"Medium priority percentage {med_pct:.1f}% not in 20-35%"
+    assert 45.0 <= low_pct <= 65.0, f"Low priority percentage {low_pct:.1f}% not in 45-65%"
 
     # Opportunity Matrix quadrants all meaningfully populated
     insights = client.get("/api/insights").json()
@@ -308,5 +314,12 @@ def test_calibrated_demo_data_distribution(client):
     assert insights["verify_first_count"] >= 8, "Verify first quadrant insufficient"
     assert insights["known_low_fit_count"] >= 40, "Known low fit quadrant insufficient"
     assert insights["deprioritize_count"] >= 15, "Deprioritize quadrant insufficient"
+
+    # CRITICAL: Strict reconciliation between Research View and Executive View
+    assert insights["priority_targets_count"] + insights["verify_first_count"] == high, (
+        f"High fit count mismatch: {insights['priority_targets_count']} + "
+        f"{insights['verify_first_count']} != {high}"
+    )
+    assert total == insights["priority_targets_count"] + insights["verify_first_count"] + insights["known_low_fit_count"] + insights["deprioritize_count"] + unscored
 
 

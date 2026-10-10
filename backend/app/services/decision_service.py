@@ -136,15 +136,20 @@ class DecisionService:
     @staticmethod
     def determine_quadrant(fit_score: Optional[float], data_confidence: float) -> Tuple[str, str]:
         """
-        Calculates Opportunity Matrix Quadrant based on:
-        High Fit >= 70, High Confidence >= 75%.
+        Calculates Opportunity Matrix Quadrant based on unified definitions:
+        - HIGH FIT = 80-100
+        - MEDIUM FIT = 60-79
+        - LOW FIT = 0-59
+        - HIGH CONFIDENCE >= 75.0%
+        - LOW CONFIDENCE < 75.0%
+        Ensures: priority_targets + verify_first == high_priority
         """
         score = fit_score if fit_score is not None else 0.0
-        if score >= 70.0 and data_confidence >= 75.0:
+        if score >= 80.0 and data_confidence >= 75.0:
             return "PRIORITY_TARGETS", "Priority Targets"
-        elif score >= 70.0 and data_confidence < 75.0:
+        elif score >= 80.0 and data_confidence < 75.0:
             return "VERIFY_FIRST", "Verify First"
-        elif score < 70.0 and data_confidence >= 75.0:
+        elif score < 80.0 and data_confidence >= 75.0:
             return "KNOWN_LOW_FIT", "Known Low Fit"
         else:
             return "DEPRIORITIZE", "Deprioritize"
@@ -157,38 +162,44 @@ class DecisionService:
         neg_signals: Optional[List[str]] = None
     ) -> str:
         """
-        Deterministic recommendation based only on missing fields, fit, and confidence.
+        Deterministic recommendation derived strictly from firmographic fields, fit, and data confidence.
         """
         score = fit_score if fit_score is not None else 0.0
         negatives = neg_signals or []
 
-        # Check for explicit exclusion
+        # 1. Check for explicit exclusion keyword
         for neg in negatives:
             if "exclusion keyword" in neg.lower():
                 return "Exclude from acquisition pipeline"
 
-        # Fit too low
-        if score < 50.0:
+        # 2. Fit too low to justify diligence (< 60/100)
+        if score < 60.0:
             return "Deprioritize"
 
-        # Core critical data missing
+        # 3. Critical core field verifications (Revenue, Decision Maker)
         if lead_dict.get('revenue') is None or str(lead_dict.get('revenue')).strip() == '':
             return "Verify revenue range"
         if lead_dict.get('employee_count') is None or str(lead_dict.get('employee_count')).strip() == '':
             return "Verify employee count"
-        if not lead_dict.get('owner_name'):
+        if not lead_dict.get('owner_name') or str(lead_dict.get('owner_name')).strip() == '':
             return "Identify decision maker"
+
+        # 4. High fit + High confidence targets (Priority Targets)
+        if score >= 80.0 and data_confidence >= 75.0:
+            return "Prioritize for initial owner research"
+
+        # 5. Missing web or contact channels
+        if not lead_dict.get('website') or str(lead_dict.get('website')).strip() == '':
+            return "Verify company web presence"
         if not lead_dict.get('owner_email') and not lead_dict.get('phone'):
             return "Source decision maker contact info"
 
-        # High fit checks
-        if score >= 70.0:
-            if data_confidence >= 75.0:
-                return "Prioritize for initial owner research"
-            else:
-                return "Verify core company data before outreach"
+        # 6. High fit + Low confidence targets (Verify First)
+        if score >= 80.0:
+            return "Verify core company data before outreach"
 
-        if score >= 50.0 and score < 70.0:
+        # 7. Medium fit recommendations (60-79)
+        if score >= 60.0:
             return "Review thesis fit with deal lead"
 
         return "Verify target parameters"

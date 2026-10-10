@@ -99,7 +99,7 @@ def import_csv(db: Session, file_content: str, filename: str) -> ImportResult:
         for l in repo.get_all(db, 0, 1000000)[0]
     ]
     
-    unique_leads, merged_leads, duplicate_count = find_duplicates(parsed_leads, existing_leads)
+    unique_leads, merged_leads, duplicate_count, audit = find_duplicates(parsed_leads, existing_leads)
     
     # Import unique leads
     if unique_leads:
@@ -112,12 +112,30 @@ def import_csv(db: Session, file_content: str, filename: str) -> ImportResult:
             m['data_quality_score'] = calculate_data_quality(m)
             repo.update(db, m['id'], m)
 
+    # Formulate truthful audit message based on actual database operations
+    if audit['records_inserted'] > 0:
+        if audit['duplicate_rows'] > 0:
+            msg = f"{audit['records_inserted']} new companies successfully imported ({audit['duplicate_rows']} duplicate rows consolidated)."
+        else:
+            msg = f"{audit['records_inserted']} new companies successfully imported."
+    elif audit['records_updated'] > 0:
+        msg = f"No new companies imported. {audit['records_updated']} existing database records were enriched with new data."
+    else:
+        msg = "No new companies imported. Uploaded records matched existing database records."
+
     return ImportResult(
         rows_received=rows_received,
         valid_rows=valid_rows,
         invalid_rows=invalid_rows,
+        new_records=audit['records_inserted'],
+        existing_matches=audit['existing_matches'],
+        duplicate_rows=audit['duplicate_rows'],
+        records_inserted=audit['records_inserted'],
+        records_updated=audit['records_updated'],
+        records_unchanged=audit['records_unchanged'],
         duplicates_found=duplicate_count,
-        rows_imported=len(unique_leads),
+        rows_imported=audit['records_inserted'],
+        message=msg,
         errors=errors[:10]
     )
 

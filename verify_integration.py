@@ -23,6 +23,7 @@ def run_checks():
         assert insights['priority_targets_count'] > 0
         assert insights['verify_first_count'] > 0
         assert len(insights['research_queue']) <= 5
+        print(f"   - Strict Reconciliation Check: Priority Targets ({insights['priority_targets_count']}) + Verify First ({insights['verify_first_count']}) == High Fit ({insights['priority_targets_count'] + insights['verify_first_count']})")
 
     # 3. Stats endpoint & count invariant
     with urllib.request.urlopen('http://127.0.0.1:8000/api/stats') as resp:
@@ -36,6 +37,8 @@ def run_checks():
         print(f"   - Total: {total}, High: {high}, Med: {med}, Low: {low}, Unscored: {unscored}")
         assert total == high + med + low + unscored, f"Invariant violated: {total} != {high + med + low + unscored}"
         print(f"   - Count invariant STRICTLY VERIFIED: total == high + med + low + unscored")
+        assert insights['priority_targets_count'] + insights['verify_first_count'] == high, f"Reconciliation violated: {insights['priority_targets_count']} + {insights['verify_first_count']} != {high}"
+        print(f"   - High Fit Reconciliation STRICTLY VERIFIED: priority_targets ({insights['priority_targets_count']}) + verify_first ({insights['verify_first_count']}) == high_fit ({high})")
 
     # 4. Shortlist endpoints
     with urllib.request.urlopen('http://127.0.0.1:8000/api/shortlist') as resp:

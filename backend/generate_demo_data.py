@@ -89,10 +89,10 @@ def generate_base_records(count=160):
 records = generate_base_records(160)
 
 # ==============================================================================
-# COHORT 1: HIGH FIT (Score >= 80) -> Target: ~18 records (~11% of unique)
+# COHORT 1: HIGH FIT (Score >= 80) -> Target: ~22 records (~14% of unique)
 # ==============================================================================
-# 1A. High Fit + High Confidence (Quadrant: Priority Targets): 11 records
-for i in range(11):
+# 1A. High Fit + High Confidence (Quadrant: Priority Targets): 12 records
+for i in range(12):
     records[i]['industry'] = random.choice(['SaaS', 'Healthcare', 'FinTech'])
     records[i]['state'] = random.choice(['TX', 'CA', 'NY', 'FL'])
     records[i]['city'] = get_city(records[i]['state'])
@@ -100,9 +100,9 @@ for i in range(11):
     records[i]['employee_count'] = random.randint(25, 150)
     records[i]['founded_year'] = random.randint(2008, 2018)
 
-# 1B. High Fit + Low Confidence (Quadrant: Verify First): 7 records
+# 1B. High Fit + Low Confidence (Quadrant: Verify First): 10 records
 # High fit attributes match, but key contact and profile fields are missing
-for i in range(11, 18):
+for i in range(12, 22):
     records[i]['industry'] = random.choice(['SaaS', 'Healthcare', 'FinTech'])
     records[i]['state'] = random.choice(['TX', 'CA', 'NY', 'FL'])
     records[i]['city'] = get_city(records[i]['state'])
@@ -114,11 +114,11 @@ for i in range(11, 18):
     records[i]['linkedin_url'] = ''
 
 # ==============================================================================
-# COHORT 2: MEDIUM FIT (60 <= Score < 80) -> Target: ~40 records (~25% of unique)
+# COHORT 2: MEDIUM FIT (60 <= Score < 80) -> Target: ~38 records (~24% of unique)
 # ==============================================================================
-# 2A. Upper Medium, High Confidence (Fit 70-79, Conf >= 75% -> Priority Targets): 14 records
+# 2A. Upper Medium, High Confidence (Fit 70-79, Conf >= 75% -> Known Low/Med Fit): 14 records
 # Strong industry & financials, but outside primary geographic target and older founding date
-for i in range(18, 32):
+for i in range(22, 36):
     records[i]['industry'] = random.choice(['SaaS', 'Healthcare', 'FinTech'])
     records[i]['state'] = random.choice(['OH', 'PA', 'CO', 'GA', 'NC', 'VA', 'AZ', 'WA'])
     records[i]['city'] = get_city(records[i]['state'])
@@ -126,9 +126,9 @@ for i in range(18, 32):
     records[i]['employee_count'] = random.randint(25, 150)
     records[i]['founded_year'] = random.randint(1982, 1996)  # Outside target age
 
-# 2B. Upper Medium, Low Confidence (Fit 70-79, Conf < 75% -> Verify First): 8 records
+# 2B. Upper Medium, Low Confidence (Fit 70-79, Conf < 75% -> Deprioritize): 6 records
 # Core criteria match, but revenue and executive identity are unconfirmed
-for i in range(32, 40):
+for i in range(36, 42):
     records[i]['industry'] = random.choice(['SaaS', 'Healthcare', 'FinTech'])
     records[i]['state'] = random.choice(['TX', 'CA', 'NY', 'FL'])
     records[i]['city'] = get_city(records[i]['state'])
@@ -141,9 +141,9 @@ for i in range(32, 40):
     records[i]['phone'] = ''
     records[i]['linkedin_url'] = ''
 
-# 2C. Lower Medium, High Confidence (Fit 60-69, Conf >= 75% -> Known Low Fit): 18 records
+# 2C. Lower Medium, High Confidence (Fit 60-69, Conf >= 75% -> Known Low/Med Fit): 18 records
 # Adjacent sectors (EdTech, MarTech, InsurTech) with near-boundary revenue in target states
-for i in range(40, 58):
+for i in range(42, 60):
     records[i]['industry'] = random.choice(['Manufacturing', 'EdTech', 'CleanTech', 'InsurTech', 'MarTech'])
     records[i]['state'] = random.choice(['TX', 'CA', 'NY', 'FL'])
     records[i]['city'] = get_city(records[i]['state'])
@@ -152,11 +152,11 @@ for i in range(40, 58):
     records[i]['founded_year'] = random.randint(2008, 2018)
 
 # ==============================================================================
-# COHORT 3: LOW FIT (Score < 60) -> Target: ~102 records (~64% of unique)
+# COHORT 3: LOW FIT (Score < 60) -> Target: ~100 records (~62% of unique)
 # ==============================================================================
-# 3A. Low Fit, High Confidence (Fit < 60, Conf >= 75% -> Known Low Fit): 67 records
+# 3A. Low Fit, High Confidence (Fit < 60, Conf >= 75% -> Known Low Fit): 65 records
 # Non-target industries and outside geography, large scale, but fully documented
-for i in range(58, 125):
+for i in range(60, 125):
     records[i]['industry'] = random.choice(['Construction', 'Real Estate', 'Logistics', 'Retail', 'Hospitality', 'Professional Services'])
     records[i]['state'] = random.choice(['OH', 'PA', 'AZ', 'TN', 'OR', 'MN', 'MI', 'NJ', 'MD', 'UT', 'IN', 'MO', 'WI', 'SC'])
     records[i]['city'] = get_city(records[i]['state'])

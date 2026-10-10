@@ -1,25 +1,35 @@
 from typing import List, Tuple, Dict, Any
 
-def find_duplicates(leads: List[dict], existing_leads: List[dict]) -> Tuple[List[dict], List[dict], int]:
-    unique_leads = []
-    merged_existing_leads = []
-    duplicate_count = 0
+def find_duplicates(leads: List[dict], existing_leads: List[dict]) -> Tuple[List[dict], List[dict], int, Dict[str, int]]:
+    """
+    Categorizes incoming leads into:
+    - unique_leads: completely new companies to be inserted into database
+    - merged_existing_leads: database records enriched with new fields from this upload
+    - duplicate_count: total consolidated rows (duplicate_rows + existing_matches)
+    - audit_stats: granular counts distinguishing internal duplicate rows from existing DB matches
+    """
+    unique_leads: List[dict] = []
+    merged_existing_leads: List[dict] = []
     
-    domain_map: Dict[str, Tuple[str, dict]] = {}
-    name_state_map: Dict[str, Tuple[str, dict]] = {}
+    domain_map: Dict[str, dict] = {}
+    name_state_map: Dict[str, dict] = {}
     
     # 1. Index existing leads from database
     for e in existing_leads:
         lead_dict = dict(e)
         dom = str(lead_dict.get('domain') or '').strip().lower()
         if dom:
-            domain_map[dom] = ('existing', lead_dict)
+            domain_map[dom] = lead_dict
             
         cname = str(lead_dict.get('company_name') or '').strip().lower()
         cstate = str(lead_dict.get('state') or '').strip().lower()
         if cname:
-            ns = f"{cname}_{cstate}"
-            name_state_map[ns] = ('existing', lead_dict)
+            name_state_map[f"{cname}_{cstate}"] = lead_dict
+
+    seen_in_batch: Dict[str, dict] = {}
+    existing_matches = 0
+    duplicate_rows = 0
+    records_updated = 0
 
     # 2. Process incoming leads
     for new_lead in leads:
@@ -29,29 +39,54 @@ def find_duplicates(leads: List[dict], existing_leads: List[dict]) -> Tuple[List
         cstate = str(lead_copy.get('state') or '').strip().lower()
         ns = f"{cname}_{cstate}" if cname else ""
         
-        match_info = None
-        if dom and dom in domain_map:
-            match_info = domain_map[dom]
-        elif ns and ns in name_state_map:
-            match_info = name_state_map[ns]
-            
-        if match_info is not None:
-            duplicate_count += 1
-            source_type, target_record = match_info
-            merged = merge_leads(target_record, lead_copy)
-            target_record.clear()
-            target_record.update(merged)
-            
-            if source_type == 'existing' and target_record not in merged_existing_leads:
-                merged_existing_leads.append(target_record)
+        # Primary identity key
+        batch_key = dom if dom else ns
+
+        if batch_key and batch_key in seen_in_batch:
+            # Internal duplicate row within the uploaded batch itself
+            duplicate_rows += 1
+            target = seen_in_batch[batch_key]
+            merged = merge_leads(target, lead_copy)
+            target.clear()
+            target.update(merged)
         else:
-            unique_leads.append(lead_copy)
-            if dom:
-                domain_map[dom] = ('batch', lead_copy)
-            if ns:
-                name_state_map[ns] = ('batch', lead_copy)
-                
-    return unique_leads, merged_existing_leads, duplicate_count
+            # Check for existing match in database
+            match_db = None
+            if dom and dom in domain_map:
+                match_db = domain_map[dom]
+            elif ns and ns in name_state_map:
+                match_db = name_state_map[ns]
+
+            if match_db is not None:
+                existing_matches += 1
+                seen_in_batch[batch_key] = match_db
+                before = dict(match_db)
+                merged = merge_leads(match_db, lead_copy)
+                match_db.clear()
+                match_db.update(merged)
+                was_enriched = any(
+                    (before.get(k) is None or str(before.get(k)).strip() == '') and
+                    (merged.get(k) is not None and str(merged.get(k)).strip() != '')
+                    for k in merged
+                )
+                if was_enriched and match_db not in merged_existing_leads:
+                    merged_existing_leads.append(match_db)
+                    records_updated += 1
+            else:
+                # Genuinely new unique company
+                seen_in_batch[batch_key] = lead_copy
+                unique_leads.append(lead_copy)
+
+    total_duplicates = duplicate_rows + existing_matches
+    audit_stats = {
+        'records_inserted': len(unique_leads),
+        'existing_matches': existing_matches,
+        'duplicate_rows': duplicate_rows,
+        'records_updated': records_updated,
+        'records_unchanged': existing_matches - records_updated
+    }
+    
+    return unique_leads, merged_existing_leads, total_duplicates, audit_stats
 
 def merge_leads(existing: dict, new: dict) -> dict:
     merged = dict(existing)

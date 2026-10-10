@@ -162,26 +162,55 @@ export default function ImportPage() {
             </button>
           </div>
 
-          {/* 4 Metric Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div className="bg-slate-950 p-4 rounded-lg border border-slate-800">
-              <span className="block text-[11px] font-semibold uppercase text-slate-400">Received</span>
-              <span className="block text-2xl font-bold font-mono text-slate-100 mt-1">{result.rows_received}</span>
+          {/* Outcome Status Banner */}
+          <div className={`p-4 rounded-xl border flex items-center gap-3 ${
+            result.records_inserted > 0
+              ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+              : 'bg-slate-800/60 border-slate-700/60 text-slate-200'
+          }`}>
+            <CheckCircle2 className={`w-5 h-5 shrink-0 ${result.records_inserted > 0 ? 'text-emerald-400' : 'text-cyan-400'}`} />
+            <div>
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Intake Outcome</h4>
+              <p className="text-xs font-medium mt-0.5 text-slate-100">{result.message}</p>
+            </div>
+          </div>
+
+          {/* 6 Granular Audit Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+            <div className="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
+              <span className="block text-[10px] font-semibold uppercase text-slate-400">Received</span>
+              <span className="block text-xl font-bold font-mono text-slate-100 mt-1">{result.rows_received}</span>
+              <span className="block text-[10px] text-slate-400 mt-0.5">Raw CSV rows</span>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-lg border border-emerald-950">
-              <span className="block text-[11px] font-semibold uppercase text-emerald-400">Imported</span>
-              <span className="block text-2xl font-bold font-mono text-emerald-300 mt-1">{result.rows_imported}</span>
+            <div className="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
+              <span className="block text-[10px] font-semibold uppercase text-slate-400">Valid Rows</span>
+              <span className="block text-xl font-bold font-mono text-slate-100 mt-1">{result.valid_rows}</span>
+              <span className="block text-[10px] text-slate-400 mt-0.5">Validated data</span>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-lg border border-amber-950">
-              <span className="block text-[11px] font-semibold uppercase text-amber-400">Duplicates Merged</span>
-              <span className="block text-2xl font-bold font-mono text-amber-300 mt-1">{result.duplicates_found}</span>
+            <div className="bg-slate-950 p-3.5 rounded-lg border border-emerald-950">
+              <span className="block text-[10px] font-semibold uppercase text-emerald-400">New Companies</span>
+              <span className="block text-xl font-bold font-mono text-emerald-300 mt-1">{result.records_inserted}</span>
+              <span className="block text-[10px] text-slate-400 mt-0.5">Inserted to DB</span>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-lg border border-rose-950">
-              <span className="block text-[11px] font-semibold uppercase text-rose-400">Validation Errors</span>
-              <span className="block text-2xl font-bold font-mono text-rose-300 mt-1">{result.invalid_rows}</span>
+            <div className="bg-slate-950 p-3.5 rounded-lg border border-cyan-950">
+              <span className="block text-[10px] font-semibold uppercase text-cyan-400">Existing Matches</span>
+              <span className="block text-xl font-bold font-mono text-cyan-300 mt-1">{result.existing_matches}</span>
+              <span className="block text-[10px] text-slate-400 mt-0.5">Already in DB</span>
+            </div>
+
+            <div className="bg-slate-950 p-3.5 rounded-lg border border-amber-950">
+              <span className="block text-[10px] font-semibold uppercase text-amber-400">Duplicate Rows</span>
+              <span className="block text-xl font-bold font-mono text-amber-300 mt-1">{result.duplicate_rows}</span>
+              <span className="block text-[10px] text-slate-400 mt-0.5">In-upload dupes</span>
+            </div>
+
+            <div className="bg-slate-950 p-3.5 rounded-lg border border-indigo-950">
+              <span className="block text-[10px] font-semibold uppercase text-indigo-400">Records Enriched</span>
+              <span className="block text-xl font-bold font-mono text-indigo-300 mt-1">{result.records_updated}</span>
+              <span className="block text-[10px] text-slate-400 mt-0.5">Fields merged</span>
             </div>
           </div>
 
@@ -200,16 +229,20 @@ export default function ImportPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
             <div className="flex items-center gap-2 text-xs text-slate-400">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Records successfully committed to local SQLite database.</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                {result.records_inserted > 0 || result.records_updated > 0
+                  ? 'Records successfully committed to local SQLite database.'
+                  : 'Database state preserved — all uploaded records matched existing database records without modifications.'}
+              </span>
             </div>
 
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors shrink-0"
             >
               <span>Proceed to Command Center</span>
               <ArrowRight className="w-3.5 h-3.5" />

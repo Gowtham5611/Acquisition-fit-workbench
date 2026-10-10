@@ -183,3 +183,29 @@ def test_load_demo(client):
     assert data["rows_received"] == 175
     assert data["duplicates_found"] == 15
     assert data["rows_imported"] == 160
+
+def test_import_idempotency_multi_run(client):
+    # 1. Load demo dataset first time
+    res1 = client.post("/api/leads/load-demo").json()
+    assert res1["records_inserted"] == 160
+    assert res1["duplicate_rows"] == 15
+    count1 = client.get("/api/stats").json()["total_leads"]
+    assert count1 == 160
+
+    # 2. Re-import demo dataset second time
+    res2 = client.post("/api/leads/load-demo").json()
+    assert res2["records_inserted"] == 0
+    assert res2["existing_matches"] == 160
+    assert res2["duplicate_rows"] == 15
+    assert "No new companies imported" in res2["message"]
+    count2 = client.get("/api/stats").json()["total_leads"]
+    assert count2 == 160
+
+    # 3. Re-import demo dataset third time
+    res3 = client.post("/api/leads/load-demo").json()
+    assert res3["records_inserted"] == 0
+    assert res3["existing_matches"] == 160
+    assert res3["duplicate_rows"] == 15
+    count3 = client.get("/api/stats").json()["total_leads"]
+    assert count3 == 160
+
