@@ -1,3 +1,6 @@
+import csv
+import logging
+import os
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from sqlalchemy.orm import Session
 from fastapi.responses import PlainTextResponse
@@ -6,7 +9,8 @@ from app.models.database import get_db
 from app.services.import_service import import_csv, load_demo_data
 from app.services.export_service import export_leads
 from app.schemas.import_export import ImportResult
-import os
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -15,14 +19,23 @@ async def import_leads_csv(file: UploadFile = File(...), db: Session = Depends(g
     if not file.filename or not file.filename.lower().endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed")
     content = await file.read()
+    if not content or len(content.strip()) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded CSV file is empty")
     try:
-        decoded_content = content.decode('utf-8')
+        decoded_content = content.decode('utf-8-sig')
     except UnicodeDecodeError:
         try:
             decoded_content = content.decode('latin-1')
         except Exception:
             raise HTTPException(status_code=400, detail="Unable to decode CSV file format")
-    return import_csv(db, decoded_content, file.filename)
+    try:
+        return import_csv(db, decoded_content, file.filename)
+    except csv.Error as ce:
+        logger.warning(f"Malformed CSV uploaded: {file.filename} - {str(ce)}")
+        raise HTTPException(status_code=400, detail=f"Malformed CSV format: {str(ce)}")
+    except Exception as e:
+        logger.error(f"Error importing CSV {file.filename}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Failed to process CSV file. Ensure valid headers and structure.")
 
 @router.get('/api/leads/export', response_class=PlainTextResponse)
 def export_leads_csv(

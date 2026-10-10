@@ -86,7 +86,9 @@ class LeadRepository:
         return db.query(Lead).filter(func.lower(Lead.company_name) == name.lower(), func.lower(Lead.state) == (state or '').lower()).first()
 
     def create(self, db: Session, lead_data: dict) -> Lead:
-        lead = Lead(**lead_data)
+        writable_cols = {c.name for c in Lead.__table__.columns} - {'id', 'created_at', 'updated_at'}
+        clean_data = {k: v for k, v in lead_data.items() if k in writable_cols}
+        lead = Lead(**clean_data)
         db.add(lead)
         db.commit()
         db.refresh(lead)
@@ -95,8 +97,9 @@ class LeadRepository:
     def update(self, db: Session, lead_id: int, data: dict) -> Optional[Lead]:
         lead = self.get_by_id(db, lead_id)
         if lead:
+            writable_cols = {c.name for c in Lead.__table__.columns} - {'id', 'created_at', 'updated_at'}
             for k, v in data.items():
-                if hasattr(lead, k):
+                if k in writable_cols and hasattr(lead, k):
                     setattr(lead, k, v)
             db.commit()
             db.refresh(lead)
@@ -114,7 +117,8 @@ class LeadRepository:
         return lead
 
     def bulk_create(self, db: Session, leads_data: List[dict]) -> List[Lead]:
-        leads = [Lead(**data) for data in leads_data]
+        writable_cols = {c.name for c in Lead.__table__.columns} - {'id', 'created_at', 'updated_at'}
+        leads = [Lead(**{k: v for k, v in data.items() if k in writable_cols}) for data in leads_data]
         db.add_all(leads)
         db.commit()
         for lead in leads:

@@ -175,6 +175,87 @@ def test_invalid_csv(client):
     data = response.json()
     assert data["invalid_rows"] == 1
     assert data["rows_imported"] == 0
+    assert any("company_name is required" in err for err in data["errors"])
+
+def test_import_empty_csv(client):
+    files = {"file": ("empty.csv", io.BytesIO(b""), "text/csv")}
+    response = client.post("/api/leads/import", files=files)
+    assert response.status_code == 400
+    assert "empty" in response.json()["detail"].lower()
+
+def test_import_whitespace_csv(client):
+    files = {"file": ("whitespace.csv", io.BytesIO(b"   \n  \n "), "text/csv")}
+    response = client.post("/api/leads/import", files=files)
+    assert response.status_code == 400
+    assert "empty" in response.json()["detail"].lower()
+
+def test_import_valid_csv(client):
+    valid_csv = (
+        "company,industry,state,revenue,employee_count\n"
+        "Apex Logistics,Supply Chain,TX,8500000,45\n"
+        "Summit Cloud,SaaS,CA,3200000,18\n"
+    )
+    files = {"file": ("valid.csv", io.BytesIO(valid_csv.encode("utf-8")), "text/csv")}
+    response = client.post("/api/leads/import", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rows_received"] == 2
+    assert data["valid_rows"] == 2
+    assert data["records_inserted"] == 2
+    assert data["rows_imported"] == 2
+
+def test_import_with_utf8_bom(client):
+    bom_csv = (
+        "\ufeffCompany,Industry,State,Revenue,Employees\n"
+        "Nordic Health,Healthcare,MN,4200000,22\n"
+    )
+    files = {"file": ("bom.csv", io.BytesIO(bom_csv.encode("utf-8-sig")), "text/csv")}
+    response = client.post("/api/leads/import", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rows_received"] == 1
+    assert data["valid_rows"] == 1
+    assert data["records_inserted"] == 1
+    # Check lead was saved with proper company name
+    leads_res = client.get("/api/leads?search=Nordic")
+    assert leads_res.json()["total"] >= 1
+
+def test_import_with_exported_columns_and_unmapped_fields(client):
+    # This verifies the exact failure scenario where Location, Business Age,
+    # Fit Score, and unexpected columns caused TypeError: 'location' is an invalid keyword argument for Lead
+    complex_csv = (
+        "Company,Industry,Location,Revenue,Employees,Business Age,Decision Maker,Fit Score,Priority,Data Quality,Score Reasons,Notes,CustomCol\n"
+        "Vanguard Systems,Healthcare,\"Albany, NY\",\"$5,000,000\",25,10 yrs,Jane Doe,85,HIGH,80%,\"[+] High fit\",Confidential note,ExtraVal\n"
+    )
+    files = {"file": ("complex.csv", io.BytesIO(complex_csv.encode("utf-8")), "text/csv")}
+    response = client.post("/api/leads/import", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rows_received"] == 1
+    assert data["valid_rows"] == 1
+    assert data["records_inserted"] == 1
+    # Verify Location was parsed into city and state
+    leads_res = client.get("/api/leads?search=Vanguard+Systems")
+    items = leads_res.json()["items"]
+    assert len(items) >= 1
+    assert items[0]["city"] == "Albany"
+    assert items[0]["state"] == "NY"
+    assert items[0]["owner_name"] == "Jane Doe"
+
+def test_import_batch_duplicates_consolidation(client):
+    # Tests duplicate rows within uploaded file itself
+    dupe_csv = (
+        "company,domain,industry,revenue\n"
+        "Duplicate Alpha,alpha.com,SaaS,1000000\n"
+        "Duplicate Alpha,alpha.com,SaaS,2000000\n"
+    )
+    files = {"file": ("dupes.csv", io.BytesIO(dupe_csv.encode("utf-8")), "text/csv")}
+    response = client.post("/api/leads/import", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rows_received"] == 2
+    assert data["duplicate_rows"] == 1
+    assert data["records_inserted"] == 1
 
 def test_load_demo(client):
     response = client.post("/api/leads/load-demo")
@@ -208,4 +289,27 @@ def test_import_idempotency_multi_run(client):
     assert res3["duplicate_rows"] == 15
     count3 = client.get("/api/stats").json()["total_leads"]
     assert count3 == 160
+
+def test_export_then_import_roundtrip(client):
+    # Load demo data
+    client.post("/api/leads/load-demo")
+    
+    # Export leads to CSV
+    export_res = client.get("/api/leads/export")
+    assert export_res.status_code == 200
+    csv_text = export_res.text
+    assert "Company,Industry,Location" in csv_text
+
+    # Re-import exported CSV
+    files = {"file": ("exported.csv", io.BytesIO(csv_text.encode("utf-8")), "text/csv")}
+    import_res = client.post("/api/leads/import", files=files)
+    assert import_res.status_code == 200
+    data = import_res.json()
+    # All 160 leads must match without error or crash
+    assert data["rows_received"] == 160
+    assert data["valid_rows"] == 160
+    assert data["existing_matches"] == 160
+    assert data["records_inserted"] == 0
+
+
 
