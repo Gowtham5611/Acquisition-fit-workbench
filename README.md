@@ -65,20 +65,20 @@ The application focuses strictly on two primary product features without unneces
                   │  VERIFY FIRST                   PRIORITY TARGETS
                   │  (High Fit + Low Confidence)    (High Fit + High Confidence)
                   │  -------------------------------------------------------------
-               70 ┼───────────────────────────────┬───────────────────────────────
+               80 ┼───────────────────────────────┬───────────────────────────────
                   │  BOTTOM-LEFT:                 │ BOTTOM-RIGHT:
-                  │  DEPRIORITIZE                 │ KNOWN LOW FIT
-                  │  (Low Fit + Low Confidence)   │ (Low Fit + High Confidence)
+                  │  UNVERIFIED / LOW FIT         │ SECONDARY / LOW FIT
+                  │  (Lower Fit + Low Confidence) │ (Lower Fit + High Confidence)
                   │                               │
                 0 └───────────────────────────────┴───────────────────────────────►
                   0                              75                              100
                                        DATA CONFIDENCE (%)
 ```
 
-- **Top-Right (Priority Targets):** Targets that match the acquisition criteria with verified contact and operational data. Ready for initial owner outreach.
-- **Top-Left (Verify First):** Targets that match the acquisition thesis but have data gaps (e.g. missing direct email or unconfirmed revenue). Verification is needed before outreach.
-- **Bottom-Right (Known Low Fit):** Complete records that definitively fall outside the target industry, geography, or size criteria.
-- **Bottom-Left (Deprioritize):** Low fit combined with incomplete information; de-prioritized for sourcing time.
+- **Top-Right (Priority Targets — Fit ≥80, Conf ≥75%):** High strategic fit with validated operational data. Primary acquisition candidates ready for initial owner outreach.
+- **Top-Left (Verify First — Fit ≥80, Conf <75%):** High strategic alignment but incomplete profile data (e.g. missing direct email or unconfirmed revenue). Requires data verification prior to outreach.
+- **Bottom-Right (Secondary / Low Fit — Fit <80, Conf ≥75%):** Validated records scoring below the primary tier. Contains both secondary opportunities (Medium Fit: 60–79, recommended for deal lead review) and non-aligned targets (Low Fit: 0–59, deprioritized).
+- **Bottom-Left (Unverified / Low Fit — Fit <80, Conf <75%):** Speculative or non-aligned targets with incomplete records. Lower-tier diligence priority unless criteria or data are revised.
 
 ---
 
@@ -96,15 +96,18 @@ The application focuses strictly on two primary product features without unneces
 
 ## Next Best Action Engine
 
-Rather than utilizing an ungrounded LLM, the workbench employs a deterministic decision service (`backend/app/services/decision_service.py`) that audits available fields and criteria alignment:
+Rather than utilizing an ungrounded LLM, the workbench employs a deterministic decision service (`backend/app/services/decision_service.py`) that audits available fields, criteria alignment, and data completeness:
 
-- Exclusion matched $\to$ `"Exclude from acquisition pipeline"`
-- Fit score $< 50$ $\to$ `"Deprioritize"`
+- Exclusion keyword matched $\to$ `"Exclude from acquisition pipeline"`
+- Low Fit ($< 60$) $\to$ `"Deprioritize"`
 - Missing revenue $\to$ `"Verify revenue range"`
 - Missing headcount $\to$ `"Verify employee count"`
 - Decision maker unrecorded $\to$ `"Identify decision maker"`
-- High Fit ($\ge 70$) + Low Confidence ($< 75\%$) $\to$ `"Verify core company data before outreach"`
-- High Fit ($\ge 70$) + High Confidence ($\ge 75\%$) $\to$ `"Prioritize for initial owner research"`
+- Missing website $\to$ `"Verify company web presence"`
+- Missing contact channels $\to$ `"Source decision maker contact info"`
+- High Fit ($\ge 80$) + High Confidence ($\ge 75\%$) $\to$ `"Prioritize for initial owner research"`
+- High Fit ($\ge 80$) + Low Confidence ($< 75\%$) $\to$ `"Verify core company data before outreach"`
+- Medium Fit ($60 \le \text{Fit} < 80$) with complete core data $\to$ `"Review thesis fit with deal lead"`
 
 ---
 
@@ -173,20 +176,20 @@ Accessible directly from the Lead Detail Drawer via **Generate Acquisition Brief
 
 ## Verification & Automated Test Suite
 
-The project includes **76 comprehensive automated backend tests** covering all business logic, boundary conditions, and API contracts.
+The project includes **88 comprehensive automated backend tests** covering all business logic, boundary conditions, edge cases, and API contracts.
 
 ```bash
 $ env:PYTHONPATH="backend"; py -3.13 -m pytest backend/app/tests -v
-======================== 76 passed, 1 warning in 0.76s ========================
+======================== 88 passed, 1 warning in 1.67s ========================
 ```
 
 ### Verified Test Modules
-1. `test_decision.py` (11 tests): Quadrant calculation (all 4 quadrants), next-best-action rules, verification gaps checklist, shortlist add/remove, comparison matrix (2 and 3 targets, invalid size rejection), acquisition brief generation, executive statistics, and count partition invariant.
-2. `test_scoring.py` (26 tests): All 8 scoring criteria dimensions, score clamping, boundary thresholds (59/60, 79/80), exclusion keyword penalties, and signal generation.
-3. `test_api.py` (15 tests): REST API endpoints for leads, search, filters, pagination, import, export, and health.
+1. `test_scoring.py` (26 tests): All 8 scoring criteria dimensions, score clamping, boundary thresholds (59/60, 79/80), exclusion keyword penalties, and explainable signal generation.
+2. `test_api.py` (23 tests): REST API endpoints for leads, search, filters, pagination, import idempotency, empty CSVs, UTF-8 BOM, unmapped export headers, duplicate consolidation, and health.
+3. `test_decision.py` (14 tests): Quadrant calculation (all 4 quadrants), exact boundary regression tests (59, 60, 79, 80 at high and low confidence), next-best-action rules, verification gaps checklist, shortlist add/remove, comparison matrix (2 and 3 targets, invalid size rejection), acquisition brief generation, executive statistics, and count partition invariant.
 4. `test_validation.py` (9 tests): Strict type checks, email formatting, domain protocols, negative revenues, and future founding years.
 5. `test_normalization.py` (7 tests): URL normalization, domain extraction, company suffix stripping, phone cleaning.
-6. `test_deduplication.py` (5 tests): Domain deduplication, name + state fallback, batch deduplication, field merging.
+6. `test_deduplication.py` (6 tests): Domain deduplication, name + state fallback, batch deduplication, field merging, and audit metrics.
 7. `test_data_quality.py` (3 tests): Data completeness scoring across complete, partial, and empty leads.
 
 ### Live System Integration Verification
@@ -194,7 +197,15 @@ Run the live integration verification suite:
 ```bash
 $ py -3.13 verify_integration.py
 1. Health Check: healthy
-2. Insights Check: Total=160, PriorityTargets=20, VerifyFirst=13, KnownLowFit=112, Deprioritize=15
+2. Insights Check:
+   - Total Leads: 160
+   - Priority Targets (High Fit + High Conf): 12
+   - Verify First (High Fit + Low Conf): 10
+   - Secondary / Low Fit (High Conf): 97
+   - Unverified / Low Fit (Low Conf): 41
+   - Research Queue: 5 items
+   - Pipeline Insights: 5 bullets
+   - Strict Reconciliation Check: Priority Targets (12) + Verify First (10) == High Fit (22)
 3. Stats Check: Invariant STRICTLY VERIFIED (total == high + med + low + unscored)
 4. Shortlist Check: Active shortlist endpoints verified
 5. Target Comparison Check: 2-target side-by-side comparison verified

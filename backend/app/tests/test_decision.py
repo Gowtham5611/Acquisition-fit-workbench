@@ -26,15 +26,89 @@ def test_quadrant_calculation_verify_first():
     assert q == "VERIFY_FIRST"
     assert label == "Verify First"
 
-def test_quadrant_calculation_known_low_fit():
+def test_quadrant_calculation_secondary_or_low():
     q, label = DecisionService.determine_quadrant(45.0, 88.0)
-    assert q == "KNOWN_LOW_FIT"
-    assert label == "Known Low Fit"
+    assert q == "SECONDARY_OR_LOW"
+    assert label == "Secondary / Low Fit"
 
-def test_quadrant_calculation_deprioritize():
+def test_quadrant_calculation_unverified_or_low():
     q, label = DecisionService.determine_quadrant(40.0, 45.0)
-    assert q == "DEPRIORITIZE"
-    assert label == "Deprioritize"
+    assert q == "UNVERIFIED_OR_LOW"
+    assert label == "Unverified / Low Fit"
+
+def test_quadrant_and_action_boundaries_59_60_79_80():
+    """
+    Regression test verifying exact score boundaries 59, 60, 79, 80
+    at both high (>=75%) and low (<75%) data confidence.
+    Ensures:
+    - 59 is LOW fit (0-59), gets Deprioritize
+    - 60 is MEDIUM fit (60-79), remains medium and gets secondary review
+    - 79 is MEDIUM fit (60-79), remains medium and gets secondary review
+    - 80 is HIGH fit (80-100), gets priority / verify first
+    """
+    from app.services.scoring_service import get_priority
+
+    full_lead = {
+        "company_name": "Boundary Testing Corp",
+        "website": "https://boundary.test",
+        "revenue": 5000000,
+        "employee_count": 40,
+        "owner_name": "Jane Owner",
+        "owner_email": "jane@boundary.test",
+        "phone": "+1-555-0199"
+    }
+
+    # 1. Score 59 (LOW FIT boundary)
+    assert get_priority(59) == "LOW"
+    # High Confidence (85%)
+    q, label = DecisionService.determine_quadrant(59.0, 85.0)
+    assert q == "SECONDARY_OR_LOW"
+    assert label == "Secondary / Low Fit"
+    assert DecisionService.determine_next_best_action(full_lead, 59.0, 85.0) == "Deprioritize"
+    # Low Confidence (60%)
+    q, label = DecisionService.determine_quadrant(59.0, 60.0)
+    assert q == "UNVERIFIED_OR_LOW"
+    assert label == "Unverified / Low Fit"
+    assert DecisionService.determine_next_best_action(full_lead, 59.0, 60.0) == "Deprioritize"
+
+    # 2. Score 60 (MEDIUM FIT lower boundary)
+    assert get_priority(60) == "MEDIUM"
+    # High Confidence (85%)
+    q, label = DecisionService.determine_quadrant(60.0, 85.0)
+    assert q == "SECONDARY_OR_LOW"
+    assert label == "Secondary / Low Fit"
+    assert DecisionService.determine_next_best_action(full_lead, 60.0, 85.0) == "Review thesis fit with deal lead"
+    # Low Confidence (60%)
+    q, label = DecisionService.determine_quadrant(60.0, 60.0)
+    assert q == "UNVERIFIED_OR_LOW"
+    assert label == "Unverified / Low Fit"
+    assert DecisionService.determine_next_best_action(full_lead, 60.0, 60.0) == "Review thesis fit with deal lead"
+
+    # 3. Score 79 (MEDIUM FIT upper boundary)
+    assert get_priority(79) == "MEDIUM"
+    # High Confidence (85%)
+    q, label = DecisionService.determine_quadrant(79.0, 85.0)
+    assert q == "SECONDARY_OR_LOW"
+    assert label == "Secondary / Low Fit"
+    assert DecisionService.determine_next_best_action(full_lead, 79.0, 85.0) == "Review thesis fit with deal lead"
+    # Low Confidence (60%)
+    q, label = DecisionService.determine_quadrant(79.0, 60.0)
+    assert q == "UNVERIFIED_OR_LOW"
+    assert label == "Unverified / Low Fit"
+    assert DecisionService.determine_next_best_action(full_lead, 79.0, 60.0) == "Review thesis fit with deal lead"
+
+    # 4. Score 80 (HIGH FIT lower boundary)
+    assert get_priority(80) == "HIGH"
+    # High Confidence (85%)
+    q, label = DecisionService.determine_quadrant(80.0, 85.0)
+    assert q == "PRIORITY_TARGETS"
+    assert label == "Priority Targets"
+    assert DecisionService.determine_next_best_action(full_lead, 80.0, 85.0) == "Prioritize for initial owner research"
+    # Low Confidence (60%)
+    q, label = DecisionService.determine_quadrant(80.0, 60.0)
+    assert q == "VERIFY_FIRST"
+    assert label == "Verify First"
+    assert DecisionService.determine_next_best_action(full_lead, 80.0, 60.0) == "Verify core company data before outreach"
 
 def test_verification_gaps_generation():
     incomplete_lead = {
@@ -314,6 +388,8 @@ def test_calibrated_demo_data_distribution(client):
     assert insights["verify_first_count"] >= 8, "Verify first quadrant insufficient"
     assert insights["known_low_fit_count"] >= 40, "Known low fit quadrant insufficient"
     assert insights["deprioritize_count"] >= 15, "Deprioritize quadrant insufficient"
+    assert insights["secondary_or_low_count"] == insights["known_low_fit_count"]
+    assert insights["unverified_or_low_count"] == insights["deprioritize_count"]
 
     # CRITICAL: Strict reconciliation between Research View and Executive View
     assert insights["priority_targets_count"] + insights["verify_first_count"] == high, (

@@ -80,7 +80,7 @@ export interface DecisionSummary {
   fit_score: number | null;
   data_confidence: number;
   priority: string;
-  quadrant: 'PRIORITY_TARGETS' | 'VERIFY_FIRST' | 'KNOWN_LOW_FIT' | 'DEPRIORITIZE';
+  quadrant: 'PRIORITY_TARGETS' | 'VERIFY_FIRST' | 'SECONDARY_OR_LOW' | 'UNVERIFIED_OR_LOW' | 'KNOWN_LOW_FIT' | 'DEPRIORITIZE' | string;
   quadrant_label: string;
   why_this_target: string;
   next_best_action: string;
@@ -94,7 +94,7 @@ export interface MatrixPoint {
   fit_score: number;
   data_confidence: number;
   priority: string;
-  quadrant: 'PRIORITY_TARGETS' | 'VERIFY_FIRST' | 'KNOWN_LOW_FIT' | 'DEPRIORITIZE';
+  quadrant: 'PRIORITY_TARGETS' | 'VERIFY_FIRST' | 'SECONDARY_OR_LOW' | 'UNVERIFIED_OR_LOW' | 'KNOWN_LOW_FIT' | 'DEPRIORITIZE' | string;
   quadrant_label: string;
   next_best_action: string;
   industry: string | null;

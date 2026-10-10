@@ -15,8 +15,8 @@ def run_checks():
         print(f"   - Total Leads: {insights['total_leads']}")
         print(f"   - Priority Targets (High Fit + High Conf): {insights['priority_targets_count']}")
         print(f"   - Verify First (High Fit + Low Conf): {insights['verify_first_count']}")
-        print(f"   - Known Low Fit: {insights['known_low_fit_count']}")
-        print(f"   - Deprioritize: {insights['deprioritize_count']}")
+        print(f"   - Secondary / Low Fit (High Conf): {insights['known_low_fit_count']}")
+        print(f"   - Unverified / Low Fit (Low Conf): {insights['deprioritize_count']}")
         print(f"   - Research Queue: {len(insights['research_queue'])} items")
         print(f"   - Pipeline Insights: {len(insights['pipeline_insights'])} bullets")
         assert insights['total_leads'] >= 160

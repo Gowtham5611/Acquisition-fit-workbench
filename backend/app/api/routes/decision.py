@@ -47,7 +47,7 @@ def get_insights(db: Session = Depends(get_db)):
                 pt_count += 1
             elif q == "VERIFY_FIRST":
                 vf_count += 1
-            elif q == "KNOWN_LOW_FIT":
+            elif q in ("SECONDARY_OR_LOW", "KNOWN_LOW_FIT"):
                 kl_count += 1
             else:
                 dp_count += 1
@@ -124,6 +124,8 @@ def get_insights(db: Session = Depends(get_db)):
         verify_first_count=vf_count,
         known_low_fit_count=kl_count,
         deprioritize_count=dp_count,
+        secondary_or_low_count=kl_count,
+        unverified_or_low_count=dp_count,
         high_priority_count=stats['high_priority'],
         medium_priority_count=stats['medium_priority'],
         low_priority_count=stats['low_priority'],

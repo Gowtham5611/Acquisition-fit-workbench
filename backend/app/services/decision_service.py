@@ -142,6 +142,12 @@ class DecisionService:
         - LOW FIT = 0-59
         - HIGH CONFIDENCE >= 75.0%
         - LOW CONFIDENCE < 75.0%
+
+        Quadrants:
+        - Top-Right: High Fit (>= 80) + High Confidence (>= 75%) -> Priority Targets
+        - Top-Left: High Fit (>= 80) + Low Confidence (< 75%) -> Verify First
+        - Bottom-Right: Lower Fit (< 80, includes Medium 60-79 & Low 0-59) + High Confidence (>= 75%) -> Secondary / Low Fit
+        - Bottom-Left: Lower Fit (< 80, includes Medium 60-79 & Low 0-59) + Low Confidence (< 75%) -> Unverified / Low Fit
         Ensures: priority_targets + verify_first == high_priority
         """
         score = fit_score if fit_score is not None else 0.0
@@ -150,9 +156,9 @@ class DecisionService:
         elif score >= 80.0 and data_confidence < 75.0:
             return "VERIFY_FIRST", "Verify First"
         elif score < 80.0 and data_confidence >= 75.0:
-            return "KNOWN_LOW_FIT", "Known Low Fit"
+            return "SECONDARY_OR_LOW", "Secondary / Low Fit"
         else:
-            return "DEPRIORITIZE", "Deprioritize"
+            return "UNVERIFIED_OR_LOW", "Unverified / Low Fit"
 
     @staticmethod
     def determine_next_best_action(

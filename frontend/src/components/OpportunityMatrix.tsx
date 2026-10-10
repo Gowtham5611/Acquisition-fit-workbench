@@ -34,8 +34,10 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
         return '#10b981'; // Emerald
       case 'VERIFY_FIRST':
         return '#f59e0b'; // Amber
+      case 'SECONDARY_OR_LOW':
       case 'KNOWN_LOW_FIT':
         return '#64748b'; // Slate
+      case 'UNVERIFIED_OR_LOW':
       case 'DEPRIORITIZE':
       default:
         return '#94a3b8'; // Light slate
@@ -218,7 +220,7 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
               fontWeight="bold"
               letterSpacing="0.05em"
             >
-              KNOWN LOW FIT
+              SECONDARY / LOW FIT
             </text>
             <text
               x={margin.left + 10}
@@ -229,7 +231,7 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
               fontWeight="bold"
               letterSpacing="0.05em"
             >
-              DEPRIORITIZE
+              UNVERIFIED / LOW FIT
             </text>
 
             {/* Axis Labels */}
@@ -364,7 +366,7 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
 
       {/* Legend Footer */}
       <div className="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
             <span className="text-slate-300 font-medium">Priority Targets (Fit ≥80, Conf ≥75%)</span>
@@ -375,7 +377,11 @@ export default function OpportunityMatrix({ points, onSelectLead, isLoading }: O
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block"></span>
-            <span className="text-slate-300 font-medium">Known Low Fit</span>
+            <span className="text-slate-300 font-medium">Secondary / Low Fit (Fit &lt;80, Conf ≥75%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block"></span>
+            <span className="text-slate-300 font-medium">Unverified / Low Fit (Fit &lt;80, Conf &lt;75%)</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 text-amber-300">

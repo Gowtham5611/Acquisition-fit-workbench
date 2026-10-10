@@ -28,8 +28,8 @@ That distinction creates a fundamentally more actionable research queue.
 A **high-fit, low-confidence** company should **not** automatically be treated the same as a **high-fit, high-confidence** company:
 - **High Fit + High Confidence (Priority Targets):** The company fits the thesis and we have confirmed leadership, email, and revenue. **Action:** Prioritize for immediate owner research and outreach.
 - **High Fit + Low Confidence (Verify First):** The company looks like an ideal target, but direct email, phone, or verified financials are missing. **Action:** Assign a researcher to verify core data *before* burning outreach attempts.
-- **Low Fit + High Confidence (Known Low Fit):** We have complete data proving this company falls outside the thesis. **Action:** Exclude from active pipeline without wasting further analyst time.
-- **Low Fit + Low Confidence (Deprioritize):** Poor criteria match and sparse data. **Action:** Archive.
+- **Lower Fit + High Confidence (Secondary / Low Fit):** Validated records below the primary tier. Contains secondary opportunities (Medium Fit 60–79: review with deal lead) and non-aligned targets (Low Fit 0–59: deprioritize).
+- **Lower Fit + Low Confidence (Unverified / Low Fit):** Incomplete records scoring below the primary tier. Lower-tier diligence priority unless parameters or data are updated.
 
 Without this distinction, analysts waste hours chasing unverified leads or overlooking high-potential targets simply because one contact field is missing.
 

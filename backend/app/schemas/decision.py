@@ -95,8 +95,10 @@ class InsightsResponse(BaseModel):
     avg_data_confidence: float
     priority_targets_count: int  # High Fit + High Conf
     verify_first_count: int      # High Fit + Low Conf
-    known_low_fit_count: int     # Low Fit + High Conf
-    deprioritize_count: int      # Low Fit + Low Conf
+    known_low_fit_count: int     # Lower Fit (<80) + High Conf (legacy field alias)
+    deprioritize_count: int      # Lower Fit (<80) + Low Conf (legacy field alias)
+    secondary_or_low_count: Optional[int] = None   # Lower Fit (<80) + High Conf
+    unverified_or_low_count: Optional[int] = None  # Lower Fit (<80) + Low Conf
     high_priority_count: int
     medium_priority_count: int
     low_priority_count: int
